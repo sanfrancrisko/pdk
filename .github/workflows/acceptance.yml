@@ -1,0 +1,44 @@
+name: "Acceptance Tests"
+
+on: [pull_request, workflow_dispatch, push]
+
+env:
+  SERVICE_URL: https://facade-simplify-validator-6f3kfepqcq-ew.a.run.app
+
+jobs:
+  Acceptance:
+    name: 'Acceptance Tests (${{ matrix.platform.label }}, Ruby ${{ matrix.ruby_version }})'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby_version: ['2.5', '2.7']
+        platform:
+        - label: Ubuntu
+          provider: provision::docker
+          image: litmusimage/ubuntu:20.04
+        - label: Windows
+          provider: provision::provision_service
+          image: windows-2019-core
+
+    steps:
+    - name: Checkout Source
+      uses: actions/checkout@v2
+      if: ${{ github.repository_owner == 'puppetlabs' }}
+
+    - name: Activate Ruby 2.7
+      uses: ruby/setup-ruby@v1
+      if: ${{ github.repository_owner == 'puppetlabs' }}
+      with:
+        ruby-version: "2.7"
+        bundler-cache: true
+
+    - name: Provision Test Environment
+      run: |
+        bundle exec rake 'litmus:provision[${{matrix.platform.provider}},${{matrix.platform.image}}]'
+
+    - name: Tear Down
+      run: |
+        bundle exec rake 'litmus:tear_down'
+
+  

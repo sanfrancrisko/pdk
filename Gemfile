@@ -31,6 +31,8 @@ end
 group :acceptance do
   gem 'minitar-cli'
   gem 'serverspec'
+  gem 'bolt', '~> 2.0'
+  gem 'net-scp'
 end
 
 # Evaluate Gemfile.local and ~/.gemfile if they exist
