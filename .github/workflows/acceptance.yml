@@ -30,14 +30,27 @@ jobs:
         ruby-version: "2.7"
         bundler-cache: true
     
-    - name: Provision test environment
+    - name: Provision Test Environment
       run: |
+        echo "Provisioning using ${{ matrix.provider }}: ${{ matrix.image }}"
         bundle exec rake 'litmus:provision[${{ matrix.provider }},${{ matrix.image }}]'
-        bundle exec bolt command run "git clone https://github.com/$GITHUB_REPOSITORY pdk" --targets ssh_nodes --inventory inventory.yaml
-        bundle exec bolt command run "cd pdk && git checkout $GITHUB_HEAD_REF" --targets ssh_nodes --inventory inventory.yaml
-        bundle exec bolt command run 'cd pdk && bundle install --with acceptance:test' --targets ssh_nodes --inventory inventory.yaml
 
-    - name: Acceptance Tests
+    - name: Checkout Source (Test Target)
+      run: |
+        echo "Cloning $GITHUB_SERVER_URL/$GITHUB_REPOSITORY"
+        bundle exec bolt command run "git clone $GITHUB_SERVER_URL/$GITHUB_REPOSITORY" --targets ssh_nodes --inventory inventory.yaml
+        echo "Fetching ${{ github.event.number }}"
+        bundle exec bolt command run "cd pdk && git fetch origin pull/${{ github.event.number }}/head:pdk_test_repo" --targets ssh_nodes --inventory inventory.yaml
+        echo "Checking out to ${{ github.event.number }}"
+        bundle exec bolt command run "cd pdk && git checkout pdk_test_repo" --targets ssh_nodes --inventory inventory.yaml
+        echo "Running bundle install in container"      
+    
+    - name: Bundle Install (Test Target)
+      run: |
+        echo "Running bundle install in container"
+        bundle exec bolt command run "cd pdk && bundle install --with acceptance" --targets ssh_nodes --inventory inventory.yaml
+
+    - name: Exec Acceptance Tests
       run: |
         bundle exec bolt command run 'cd pdk && CI=true bundle exec rake acceptance:local_parallel' --targets ssh_nodes --inventory inventory.yaml
     
