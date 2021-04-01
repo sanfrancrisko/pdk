@@ -292,7 +292,7 @@ describe PDK::Util do
     context 'when running on a POSIX host' do
       before(:each) do
         allow(Gem).to receive(:win_platform?).and_return(false)
-        allow(Dir).to receive(:home).and_return('/home/test')
+        allow(Dir).to receive(:home).with(any_args).and_return('/home/test')
       end
 
       it 'returns a path inside the users .config directory' do
